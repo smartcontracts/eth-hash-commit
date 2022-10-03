@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ethereum Hash Commitments</title>
+</head>
+<body>
+  <h1>Ethereum Hash Commitments</h1>
+  <p>
+    This simple website allows you to publish commitments to text on Ethereum or other EVM-compatible blockchains.
+    You can later to choose to reveal the text of the commitment to prove that you knew the text at the time of the commitment.
+    This website is deliberately designed to be as simple as possible to make it easy to audit, so please excuse the lack of styling.
+    Commitments made here are hashed with SHA-256 because support for SHA-256 is built into modern web browsers.
+  </p>
+  <h2>Connect your wallet plz</h2>
+  <button onclick="connect()">Connect</button>
+  <h2>Then put your text here</h2>
+  <textarea onkeyup="update()" onchange="update()" id="content"></textarea>
+  <h2>This is the SHA-256 hash of your text</h2>
+  <p id="hash"></p>
+  <h2>Now click here to commit this hash</h2>
+  <button onclick="commit()">Commit</button>
+
+  <script>
+    const hash = async () => {
+      const content = document.getElementById('content').value
+      const mbuf = new TextEncoder().encode(content)
+      const hbuf = await crypto.subtle.digest('SHA-256', mbuf)
+      const harr = Array.from(new Uint8Array(hbuf))
+      const digest = harr.map(b => b.toString(16).padStart(2, '0')).join('')
+      return '0x' + digest
+    }
+
+    const update = async () => {
+      document.getElementById('hash').innerText = await hash()
+    }
+
+    const connect = async () => {
+      if (window.ethereum) {
+        await window.ethereum.enable()
+      }
+    }
+
+    const commit = async () => {
+      await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: window.ethereum.selectedAddress,
+          to: '0x0000000000000000000000000000000000000000',
+          data: await hash(),
+        }],
+      })
+    }
+  </script>
+
+  <script>
+    update()
+  </script>
+</body>
+</html>
